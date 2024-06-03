@@ -6,6 +6,12 @@ const port = process.env.PORT || 3000;
 
 dotenv.config();
 
+// Ensure the API key is available
+if (!process.env.API_KEY) {
+  console.error("API_KEY is missing. Please add it to your .env file.");
+  process.exit(1);
+}
+
 // Replace 'API_KEY' with your Positionstack API key
 const positionstackApiKey = process.env.API_KEY;
 
@@ -16,7 +22,10 @@ app.get("/forward-geocode", async (req, res) => {
   try {
     const { location } = req.query;
     if (!location) {
-      throw new Error("location is required in the query parameters");
+      return res.status(400).json({
+        statusMessage: "failed",
+        errorMessage: "location is required in the query parameters",
+      });
     }
     const response = await axios.get(
       "http://api.positionstack.com/v1/forward",
@@ -28,15 +37,24 @@ app.get("/forward-geocode", async (req, res) => {
         },
       }
     );
+
+    const data = response?.data?.data[0];
+    if (!data) {
+      return res.status(404).json({
+        statusMessage: "failed",
+        errorMessage: "No data found for the specified location",
+      });
+    }
+
     res.status(200).json({
       statusMessage: "success",
       data: {
-        latitude: response?.data?.data[0]?.latitude,
-        longitude: response?.data?.data[0]?.longitude,
+        latitude: data.latitude,
+        longitude: data.longitude,
       },
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       statusMessage: "failed",
       errorMessage: error.message,
@@ -49,9 +67,11 @@ app.get("/reverse-geocode", async (req, res) => {
   try {
     const { latitude, longitude } = req.query;
     if (!latitude || !longitude) {
-      throw new Error(
-        "Latitude and longitude are required in the query parameters"
-      );
+      return res.status(400).json({
+        statusMessage: "failed",
+        errorMessage:
+          "Latitude and longitude are required in the query parameters",
+      });
     }
     const response = await axios.get(
       "http://api.positionstack.com/v1/reverse",
@@ -63,14 +83,23 @@ app.get("/reverse-geocode", async (req, res) => {
         },
       }
     );
+
+    const data = response?.data?.data[0];
+    if (!data) {
+      return res.status(404).json({
+        statusMessage: "failed",
+        errorMessage: "No data found for the specified coordinates",
+      });
+    }
+
     res.json({
       statusMessage: "success",
       data: {
-        place: response?.data?.data[0].label,
+        place: data.label,
       },
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       statusMessage: "failed",
       errorMessage: error.message,
