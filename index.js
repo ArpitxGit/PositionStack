@@ -121,7 +121,7 @@ app.get("/reverse-geocode", async (req, res) => {
     res.json({
       statusMessage: "success",
       data: {
-        place: data.label,
+        place: data.region + "," + data.country,
       },
     });
     console.log("[RESPOSE]:", res);
